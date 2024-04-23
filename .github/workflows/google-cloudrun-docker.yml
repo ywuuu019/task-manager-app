@@ -89,6 +89,8 @@ jobs:
           echo "DB_URI=${{ secrets.DB_URI }}" >> .env
           echo "EMAIL_ARN=${{ secrets.EMAIL_ARN }}" >> .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
 
       - name: Build and Push Container
         run: |-
