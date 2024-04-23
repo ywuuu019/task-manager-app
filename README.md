@@ -35,7 +35,6 @@ npm install
 ```bash
 PORT=3000
 EMAIL_ARN="arn:aws:ses:ap-northeast-1:...."
-DB_NAME=task-manager-api
 DB_URI=""
 JWT_SECRET=yourjwtsecret
 ```
