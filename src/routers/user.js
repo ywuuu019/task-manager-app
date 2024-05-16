@@ -7,63 +7,27 @@ const multer = require("multer");
 const sharp = require("sharp");
 const { SendWelcomeEmail, SendCancelationEmail } = require("../email/account");
 
-router.get("/users", auth, async (req, res) => {
-  try {
-    const result = await User.find({});
-    res.send(result);
-  } catch (e) {
-    res.status(500).send(e);
-  }
-});
-
-router.post("/users/logout", auth, async (req, res) => {
-  // 要在登入的狀況下才能logout
-  // 把目前用到的token從db中刪除，
-  try {
-    // console.log(req.user);
-    req.user.tokens = req.user.tokens.filter((t) => {
-      return t.token !== req.token; // t本身也是一個array, 所以還要再.token
-    });
-    await req.user.save(); 
-    res.send();
-  } catch (e) {
-    res.status(500).send(e);
-  }
-});
-
-router.post("/users/logoutAll", auth, async (req, res) => {
-  try {
-    req.user.tokens = [];
-    await req.user.save(); 
-    res.send();
-  } catch (e) {
-    res.status(500).send(e);
-  }
-});
-
-router.get("/users/me", auth, async (req, res) => {
-  res.send(req.user); // 定義在auth裡面
-});
-
-router.get("/user/:id", async (req, res) => {
-  //   console.log(req.params); // http://localhost:3000/user/aasdfa3asdf => { id: 'aasdfa3asdf' }
-  const _id = req.params.id;
-  //   console.log(mongoose.Types.ObjectId.isValid(_id));
-  try {
-    const user = await User.findById(_id);
-    if (!user) {
-      res.status(404).send("Can't find user by this id.");
-    } else {
-      res.send(user);
-    }
-  } catch (e) {
-    res.status(500).send(e);
-  }
-});
-
-// create user
+/**
+ * @swagger
+ * /users:
+ *   post:
+ *     summary: Create a new user
+ *     tags:
+ *       - User
+ *     description: Register a new user.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/User'
+ *     responses:
+ *       201:
+ *         description: User created successfully.
+ *       400:
+ *         description: Invalid request body.
+ */
 router.post("/users", async (req, res) => {
-  //   console.log(req.body); // 印出使用者帶的body
   try {
     const user = await new User(req.body);
     await user.save();
@@ -75,6 +39,144 @@ router.post("/users", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /users/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags:
+ *       - User
+ *     description: Logout the currently logged in user.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully logged out.
+ *       500:
+ *         description: Internal server error.
+ */
+router.post("/users/logout", auth, async (req, res) => {
+  // 要在登入的狀況下才能logout
+  // 把目前用到的token從db中刪除，
+  try {
+    // console.log(req.user);
+    req.user.tokens = req.user.tokens.filter((t) => {
+      return t.token !== req.token; // t本身也是一個array, 所以還要再.token
+    });
+    await req.user.save();
+    res.send();
+  } catch (e) {
+    res.status(500).send(e);
+  }
+});
+
+/**
+ * @swagger
+ * /users/logoutAll:
+ *   post:
+ *     summary: Logout all devices
+ *     tags:
+ *       - User
+ *     description: Logout the currently logged in user from all devices.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully logged out from all devices.
+ *       500:
+ *         description: Internal server error.
+ */
+router.post("/users/logoutAll", auth, async (req, res) => {
+  try {
+    req.user.tokens = [];
+    await req.user.save();
+    res.send();
+  } catch (e) {
+    res.status(500).send(e);
+  }
+});
+
+/**
+ * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags:
+ *       - User
+ *     description: Get the profile of the currently logged in user.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successful response with user profile.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get("/users/me", auth, async (req, res) => {
+  res.send(req.user); // 定義在auth裡面
+});
+
+/**
+ * @swagger
+ * /users/{id}/avatar:
+ *   get:
+ *     summary: Get user avatar
+ *     tags:
+ *       - User
+ *     description: Retrieve the avatar image of a user by their ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user to retrieve avatar from
+ *     responses:
+ *       200:
+ *         description: Successful response with user avatar.
+ *       404:
+ *         description: Avatar not found.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get("/users/:id/avatar", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user || !user.avatar) {
+      throw new Error();
+    }
+    res.set("Content-Type", "image/png");
+    res.send(user.avatar);
+  } catch (e) {
+    res.status(500).send(e);
+  }
+});
+
+/**
+ * @swagger
+ * /users/login:
+ *   post:
+ *     summary: User login
+ *     tags:
+ *       - User
+ *     description: Login with user credentials.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User logged in successfully.
+ *       400:
+ *         description: Invalid email or password.
+ */
 router.post("/users/login", async (req, res) => {
   try {
     const user = await User.findByCredentials(
@@ -90,6 +192,30 @@ router.post("/users/login", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /users/me:
+ *   patch:
+ *     summary: Update current user
+ *     tags:
+ *       - User
+ *     description: Update the profile of the currently logged in user.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/User'
+ *     responses:
+ *       200:
+ *         description: User updated successfully.
+ *       401:
+ *         description: Unauthorized request.
+ *       400:
+ *         description: Invalid request body.
+ */
 router.patch("/users/me", auth, async (req, res) => {
   const allowUpdate = ["name", "age", "password"];
   const updates = Object.keys(req.body);
@@ -113,18 +239,6 @@ router.patch("/users/me", auth, async (req, res) => {
   }
 });
 
-router.delete("/users/me", auth, async (req, res) => {
-  try {
-    const user = req.user;
-    await user.deleteOne();
-    SendCancelationEmail(user.email, user.name); // 使用保存的user變數發送取消郵件
-    // req.user 的值確實在 deleteOne() 方法被呼叫之後才被使用。這樣做可能會導致問題，因為在刪除用戶之後再次訪問 req.user 可能會得到未定義或者無效的值。
-    res.send(req.user);
-  } catch (e) {
-    res.status(400).send(e);
-  }
-});
-
 const upload = multer({
   // dest: "avatars", // 本地的資料夾，存放上傳的東西的位置。我們不帶他，改存到db
   limits: {
@@ -138,6 +252,32 @@ const upload = multer({
   },
 });
 
+/**
+ * @swagger
+ * /users/me/avatar:
+ *   post:
+ *     summary: Upload current user avatar
+ *     tags:
+ *       - User
+ *     description: Upload a new avatar image for the currently logged in user.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Avatar uploaded successfully.
+ *       400:
+ *         description: Invalid avatar file.
+ */
 // express的router可以處理多個middle ware, 會按照參數的順序執行。所以這邊包含了幾個：
 // 先驗證使用者、上傳資料、處理錯誤
 router.post(
@@ -163,6 +303,50 @@ router.post(
   }
 );
 
+/**
+ * @swagger
+ * /users/me:
+ *   delete:
+ *     summary: Delete current user
+ *     tags:
+ *       - User
+ *     description: Delete the profile of the currently logged in user.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User deleted successfully.
+ *       400:
+ *         description: Failed to delete user.
+ */
+router.delete("/users/me", auth, async (req, res) => {
+  try {
+    const user = req.user;
+    await user.deleteOne();
+    SendCancelationEmail(user.email, user.name); // 使用保存的user變數發送取消郵件
+    // req.user 的值確實在 deleteOne() 方法被呼叫之後才被使用。這樣做可能會導致問題，因為在刪除用戶之後再次訪問 req.user 可能會得到未定義或者無效的值。
+    res.send(req.user);
+  } catch (e) {
+    res.status(400).send(e);
+  }
+});
+
+/**
+ * @swagger
+ * /users/me/avatar:
+ *   delete:
+ *     summary: Delete current user avatar
+ *     tags:
+ *       - User
+ *     description: Delete the avatar image of the currently logged in user.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Avatar deleted successfully.
+ *       400:
+ *         description: Failed to delete avatar.
+ */
 router.delete("/users/me/avatar", auth, async (req, res) => {
   try {
     req.user.avatar = undefined; // 這樣在db會根本沒有這個欄位
@@ -172,18 +356,4 @@ router.delete("/users/me/avatar", auth, async (req, res) => {
     res.status(500).send(e);
   }
 });
-
-router.get("/users/:id/avatar", async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user || !user.avatar) {
-      throw new Error();
-    }
-    res.set("Content-Type", "image/png");
-    res.send(user.avatar);
-  } catch (e) {
-    res.status(500).send(e);
-  }
-});
-
 module.exports = router;

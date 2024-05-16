@@ -36,7 +36,9 @@ npm install
 PORT=3000
 EMAIL_ARN="arn:aws:ses:ap-northeast-1:...."
 DB_URI=""
-JWT_SECRET=yourjwtsecret
+JWT_SECRET=""
+AWS_ACCESS_KEY_ID=""
+AWS_SECRET_ACCESS_KEY="" 
 ```
 
 4. Start the application
@@ -47,11 +49,10 @@ npm start
 5. Test the API endpoints using Postman or other API testing tools.
 
 ## API Documentation
-API documentation can be viewed in [Swagger UI](https://link.com). Here are some commonly used endpoints:
+API documentation can be viewed in [Swagger UI](https://task-manager-app-6zaqoqmicq-de.a.run.app/api-docs). Here are some commonly used endpoints:
 
 - `POST /users`: Create a new user
 - `POST /users/login`: User login
-- `POST /users/logout`: User logout
 - `POST /users/logoutAll`: User logout from all device
 - `POST /tasks`: Create a new task
 - `GET /users/me`: Get information of the currently logged-in user
